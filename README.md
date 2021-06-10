@@ -19,6 +19,6 @@ for await (const req of s) {
 
 [license]: https://github.com/deno-libs/proxy_addr/blob/master/LICENSE
 [releases]: https://img.shields.io/github/v/release/deno-libs/proxy_addr?style=flat-square
-[docs-badge]: https://img.shields.io/github/v/release/deno-libs/proxy_addr?color=yellow&label=Documentation&logo=deno&style=flat-square
+[docs-badge]: https://img.shields.io/github/v/release/deno-libs/proxy_addr?color=yellow&label=docs&logo=deno&style=flat-square
 [docs]: https://doc.deno.land/https/deno.land/x/proxy_addr/mod.ts
 [releases-page]: https://github.com/deno-libs/proxy_addr/releases
