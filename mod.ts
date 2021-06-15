@@ -1,5 +1,5 @@
 // deno-lint-ignore-file
-import { ServerRequest } from 'https://deno.land/std@0.98.0/http/server.ts'
+import { ServerRequest } from 'https://deno.land/std@0.99.0/http/server.ts'
 import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js'
 import { forwarded } from 'https://deno.land/x/forwarded@0.0.6/mod.ts'
 
