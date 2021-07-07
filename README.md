@@ -12,9 +12,7 @@ import { proxyaddr } from 'https://deno.land/x/proxy_addr/mod.ts'
 
 const s = await serve({ port: 3000 })
 
-for await (const req of s) {
-  console.log(proxyaddr(s))
-}
+for await (const req of s) console.log(proxyaddr(s))
 ```
 
 [license]: https://github.com/deno-libs/proxy_addr/blob/master/LICENSE
