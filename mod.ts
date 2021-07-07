@@ -1,6 +1,6 @@
 // deno-lint-ignore-file
 import { ServerRequest } from 'https://deno.land/std@0.100.0/http/server.ts'
-import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.0.1?no-check'
+import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.0.1'
 import { forwarded } from 'https://deno.land/x/forwarded@0.0.8/mod.ts'
 
 const DIGIT_REGEXP = /^[0-9]+$/
