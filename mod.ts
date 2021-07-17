@@ -1,6 +1,6 @@
 // deno-lint-ignore-file
 import { ServerRequest } from 'https://deno.land/std@0.101.0/http/server.ts'
-import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.0.1'
+import { default as ipaddr, IPv4, IPv6 } from 'https://cdn.skypack.dev/ipaddr.js'
 import { forwarded } from 'https://deno.land/x/forwarded@0.0.9/mod.ts'
 
 const DIGIT_REGEXP = /^[0-9]+$/
@@ -96,7 +96,7 @@ export function parseIPNotation(note: string) {
   let ip = parseip(str)
 
   if (pos === -1 && ip.kind() === 'ipv6') {
-    ip = ip as IPv6
+    ip = ip as typeof IPv6
 
     if (ip.isIPv4MappedAddress()) ip = ip.toIPv4Address()
   }
@@ -157,13 +157,15 @@ function trustMulti(subnets: any[]) {
       const subnetrange = subnet[1]
       let trusted = ip
       if (kind !== subnetkind) {
-        if (subnetkind === 'ipv4' && !(ip as IPv6).isIPv4MappedAddress()) continue
+        if (subnetkind === 'ipv4' && !(ip as typeof IPv6).isIPv4MappedAddress()) continue
 
-        if (!ipconv) ipconv = subnetkind === 'ipv4' ? (ip as IPv6).toIPv4Address() : (ip as IPv4).toIPv4MappedAddress()
+        if (!ipconv)
+          ipconv =
+            subnetkind === 'ipv4' ? (ip as typeof IPv6).toIPv4Address() : (ip as typeof IPv4).toIPv4MappedAddress()
 
         trusted = ipconv
       }
-      if ((trusted as IPv4).match(subnetip, subnetrange)) return true
+      if ((trusted as typeof IPv4).match(subnetip, subnetrange)) return true
     }
     return false
   }
@@ -183,11 +185,11 @@ function trustSingle(subnet: any[]) {
     let ip = parseip(addr)
     const kind = ip.kind()
     if (kind !== subnetkind) {
-      if (subnetisipv4 && !(ip as IPv6).isIPv4MappedAddress()) return false
+      if (subnetisipv4 && !(ip as typeof IPv6).isIPv4MappedAddress()) return false
 
-      ip = subnetisipv4 ? (ip as IPv6).toIPv4Address() : (ip as IPv4).toIPv4MappedAddress()
+      ip = subnetisipv4 ? (ip as typeof IPv6).toIPv4Address() : (ip as typeof IPv4).toIPv4MappedAddress()
     }
-    return (ip as IPv6).match(subnetip, subnetrange)
+    return (ip as typeof IPv6).match(subnetip, subnetrange)
   }
 }
 
