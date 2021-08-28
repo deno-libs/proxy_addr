@@ -1,7 +1,7 @@
 // deno-lint-ignore-file
 import { ServerRequest } from 'https://deno.land/std@0.106.0/http/server.ts'
 import { default as ipaddr, IPv4, IPv6 } from 'https://cdn.skypack.dev/ipaddr.js'
-import { forwarded } from 'https://deno.land/x/forwarded@0.0.11/mod.ts'
+import { forwarded } from 'https://deno.land/x/forwarded@0.0.12/mod.ts'
 
 const DIGIT_REGEXP = /^[0-9]+$/
 const isip = ipaddr.isValid
