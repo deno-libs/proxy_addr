@@ -1,7 +1,7 @@
 // deno-lint-ignore-file
-import { ServerRequest } from 'https://deno.land/std@0.106.0/http/server.ts'
 import { default as ipaddr, IPv4, IPv6 } from 'https://cdn.skypack.dev/ipaddr.js'
-import { forwarded } from 'https://deno.land/x/forwarded@0.0.12/mod.ts'
+import { forwarded } from 'https://deno.land/x/forwarded@0.1.0/mod.ts'
+import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.0/mod.ts'
 
 const DIGIT_REGEXP = /^[0-9]+$/
 const isip = ipaddr.isValid
@@ -21,7 +21,7 @@ const IP_RANGES: Record<string, string[]> = {
  * @param request
  * @param trust
  */
-function alladdrs(req: ServerRequest, trust: ((...args: any[]) => any) | any[] | string[] | string) {
+function alladdrs(req: RequestWithConnection, trust: ((...args: any[]) => any) | any[] | string[] | string) {
   // get addresses
 
   const addrs = forwarded(req)
@@ -131,7 +131,7 @@ function parseNetmask(netmask: string) {
  * @param trust
  * @public
  */
-export function proxyaddr(req: ServerRequest, trust: ((...args: any[]) => any) | any[] | string[] | string) {
+export function proxyaddr(req: RequestWithConnection, trust: ((...args: any[]) => any) | any[] | string[] | string) {
   const addrs = alladdrs(req, trust)
 
   return addrs[addrs.length - 1]
