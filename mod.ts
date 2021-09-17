@@ -3,6 +3,8 @@ import { default as ipaddr, IPv4, IPv6 } from 'https://cdn.skypack.dev/ipaddr.js
 import { forwarded } from 'https://deno.land/x/forwarded@0.1.0/mod.ts'
 import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.0/mod.ts'
 
+export type { RequestWithConnection }
+
 const DIGIT_REGEXP = /^[0-9]+$/
 const isip = ipaddr.isValid
 const parseip = ipaddr.parse

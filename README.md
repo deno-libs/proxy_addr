@@ -7,12 +7,20 @@ Deno port of [proxy-addr](https://github.com/jshttp/proxy-addr/blob/master/index
 ## Usage
 
 ```ts
-import { serve } from 'https://deno.land/std@0.88.0/http/server.ts'
-import { proxyaddr } from 'https://deno.land/x/proxy_addr/mod.ts'
+import { Server } from 'https://deno.land/std@0.107.0/http/server.ts'
+import { proxyaddr, RequestWithConnection } from 'https://deno.land/x/proxy_addr/mod.ts'
 
-const s = await serve({ port: 3000 })
+const s = new Server({
+  handler: (req, conn) => {
+    const request = req as RequestWithConnection
 
-for await (const req of s) console.log(proxyaddr(s))
+    request.conn = conn
+
+    const res = proxyaddr(request, ['localhost'])
+
+    return new Response(res)
+  }
+})
 ```
 
 [license]: https://github.com/deno-libs/proxy_addr/blob/master/LICENSE
