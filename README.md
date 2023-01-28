@@ -16,7 +16,7 @@ const s = new Server({
 
     request.conn = conn
 
-    const res = proxyaddr(request, ['localhost'])
+    const res = proxyaddr(request, ['127.0.0.1'])
 
     return new Response(res)
   }
