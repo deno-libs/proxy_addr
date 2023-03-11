@@ -1,4 +1,4 @@
-import { Server } from 'https://deno.land/std@0.130.0/http/server.ts'
+import { Server } from 'https://deno.land/std@0.179.0/http/server.ts'
 
 import { proxyaddr, RequestWithConnection } from './mod.ts'
 
