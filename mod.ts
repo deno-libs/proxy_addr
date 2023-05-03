@@ -1,7 +1,7 @@
 // deno-lint-ignore-file
 import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.0.1'
-import { forwarded } from 'https://deno.land/x/forwarded@0.1.9/mod.ts'
-import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.9/mod.ts'
+import { forwarded } from 'https://deno.land/x/forwarded@0.1.11/mod.ts'
+import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.11/mod.ts'
 
 export type { RequestWithConnection }
 
@@ -14,7 +14,7 @@ const parseip = ipaddr.parse
 const IP_RANGES: Record<string, string[]> = {
   linklocal: ['169.254.0.0/16', 'fe80::/10'],
   loopback: ['127.0.0.1/8', '::1/128'],
-  uniquelocal: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7']
+  uniquelocal: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7'],
 }
 /**
  * Get all addresses in the request, optionally stopping
@@ -23,7 +23,10 @@ const IP_RANGES: Record<string, string[]> = {
  * @param request
  * @param trust
  */
-function alladdrs(req: RequestWithConnection, trust: ((...args: any[]) => any) | any[] | string[] | string) {
+function alladdrs(
+  req: RequestWithConnection,
+  trust?: ((...args: any[]) => any) | any[] | string[] | string,
+) {
   // get addresses
 
   const addrs = forwarded(req)
@@ -81,7 +84,11 @@ function compileRangeSubnets(arr: any[]) {
 function compileTrust(rangeSubnets: any[]) {
   // Return optimized function based on length
   const len = rangeSubnets.length
-  return len === 0 ? trustNone : len === 1 ? trustSingle(rangeSubnets[0]) : trustMulti(rangeSubnets)
+  return len === 0
+    ? trustNone
+    : len === 1
+    ? trustSingle(rangeSubnets[0])
+    : trustMulti(rangeSubnets)
 }
 /**
  * Parse IP notation string into range subnet.
@@ -105,14 +112,18 @@ export function parseIPNotation(note: string) {
 
   const max = ip.kind() === 'ipv6' ? 128 : 32
 
-  let range: string | number | null = pos !== -1 ? note.substring(pos + 1, note.length) : null
+  let range: string | number | null = pos !== -1
+    ? note.substring(pos + 1, note.length)
+    : null
 
   if (range === null) range = max
   else if (DIGIT_REGEXP.test(range)) range = parseInt(range, 10)
   else if (ip.kind() === 'ipv4' && isip(range)) range = parseNetmask(range)
   else range = null
 
-  if (range && (range <= 0 || range > max)) throw new TypeError('invalid range on address: ' + note)
+  if (range && typeof range === 'number' && (range <= 0 || range > max)) {
+    throw new TypeError('invalid range on address: ' + note)
+  }
 
   return [ip, range]
 }
@@ -133,14 +144,16 @@ function parseNetmask(netmask: string) {
  * @param trust
  * @public
  */
-export function proxyaddr(req: RequestWithConnection, trust: ((...args: any[]) => any) | any[] | string[] | string) {
+export function proxyaddr(
+  req: RequestWithConnection,
+  trust?: ((...args: any[]) => any) | any[] | string[] | string,
+) {
   const addrs = alladdrs(req, trust)
 
   return addrs[addrs.length - 1]
 }
 /**
  * Static trust function to trust nothing.
- *
  */
 const trustNone = () => false
 /**
@@ -159,11 +172,15 @@ function trustMulti(subnets: any[]) {
       const subnetrange = subnet[1]
       let trusted = ip
       if (kind !== subnetkind) {
-        if (subnetkind === 'ipv4' && !(ip as typeof IPv6).isIPv4MappedAddress()) continue
+        if (
+          subnetkind === 'ipv4' && !(ip as typeof IPv6).isIPv4MappedAddress()
+        ) continue
 
-        if (!ipconv)
-          ipconv =
-            subnetkind === 'ipv4' ? (ip as typeof IPv6).toIPv4Address() : (ip as typeof IPv4).toIPv4MappedAddress()
+        if (!ipconv) {
+          ipconv = subnetkind === 'ipv4'
+            ? (ip as typeof IPv6).toIPv4Address()
+            : (ip as typeof IPv4).toIPv4MappedAddress()
+        }
 
         trusted = ipconv
       }
@@ -187,9 +204,13 @@ function trustSingle(subnet: any[]) {
     let ip = parseip(addr)
     const kind = ip.kind()
     if (kind !== subnetkind) {
-      if (subnetisipv4 && !(ip as typeof IPv6).isIPv4MappedAddress()) return false
+      if (subnetisipv4 && !(ip as typeof IPv6).isIPv4MappedAddress()) {
+        return false
+      }
 
-      ip = subnetisipv4 ? (ip as typeof IPv6).toIPv4Address() : (ip as typeof IPv4).toIPv4MappedAddress()
+      ip = subnetisipv4
+        ? (ip as typeof IPv6).toIPv4Address()
+        : (ip as typeof IPv4).toIPv4MappedAddress()
     }
     return (ip as typeof IPv6).match(subnetip, subnetrange)
   }

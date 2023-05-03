@@ -1,25 +1,28 @@
 # proxy_addr
 
-[![GitHub release (latest by date)][releases]][releases-page] [![][docs-badge]][docs]
+[![GitHub release (latest by date)][releases]][releases-page]
+[![][docs-badge]][docs]
 
-Deno port of [proxy-addr](https://github.com/jshttp/proxy-addr/blob/master/index.js) library.
+Deno port of
+[proxy-addr](https://github.com/jshttp/proxy-addr/blob/master/index.js) library.
 
 ## Usage
 
 ```ts
-import { Server } from 'https://deno.land/std@0.107.0/http/server.ts'
-import { proxyaddr, RequestWithConnection } from 'https://deno.land/x/proxy_addr/mod.ts'
+import { serve } from 'https://deno.land/std@0.185.0/http/server.ts'
+import {
+  proxyaddr,
+  RequestWithConnection,
+} from 'https://deno.land/x/proxy_addr/mod.ts'
 
-const s = new Server({
-  handler: (req, conn) => {
-    const request = req as RequestWithConnection
+await serve((req, conn) => {
+  const request = req as RequestWithConnection
 
-    request.conn = conn
+  request.conn = conn
 
-    const res = proxyaddr(request, ['127.0.0.1'])
+  const res = proxyaddr(request, ['127.0.0.1'])
 
-    return new Response(res)
-  }
+  return new Response(res)
 })
 ```
 
