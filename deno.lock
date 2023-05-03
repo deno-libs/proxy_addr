@@ -31,8 +31,8 @@
     "https://deno.land/x/tincan@1.0.1/src/nodes/utilities.ts": "5e6a6f0e2650df4e10f7dfde889ef88a588fe9c3b3618aca2acd47e80b3ee3d8",
     "https://deno.land/x/tincan@1.0.1/src/reporter.ts": "84e09297da18c840076be951c02c749678b75dc89b2575f34db1378cbb509939",
     "https://deno.land/x/tincan@1.0.1/src/runner.ts": "54e1a0934a52469437bd4655df51f0c9148327d94a2b0d6c175f6f992a697b86",
-    "https://esm.sh/ipaddr.js@2.0.1": "572c8d5ccd07cfb224145e094c9c2ab0ee701cb27155ab0b725bd21051142239",
-    "https://esm.sh/v118/ipaddr.js@2.0.1/deno/ipaddr.mjs": "774ed6749a35b0e19baf8c37eeadb7972827caf8eb42c67781326c8a55566117",
-    "https://esm.sh/v118/ipaddr.js@2.0.1/lib/ipaddr.js.d.ts": "d7e8e70fc237b3ba35976bc4581436521e5928a817bf4cdd8c06b7c885bfbc5b"
+    "https://esm.sh/ipaddr.js@2.0.1": "f2c90abe63a8f8c30d0b4e64bef4a9828accae3b0d7fce6c3afbed74be18a546",
+    "https://esm.sh/v119/ipaddr.js@2.0.1/deno/ipaddr.mjs": "774ed6749a35b0e19baf8c37eeadb7972827caf8eb42c67781326c8a55566117",
+    "https://esm.sh/v119/ipaddr.js@2.0.1/lib/ipaddr.js.d.ts": "abec029acbf1ce8b3f4c0df9bac07152f011e9034e83ab5ed6142331776b9995"
   }
 }
