@@ -1,7 +1,7 @@
 // deno-lint-ignore-file
-import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.0.1'
-import { forwarded } from 'https://deno.land/x/forwarded@0.1.11/mod.ts'
-import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.11/mod.ts'
+import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.1.0/'
+import { forwarded } from 'https://deno.land/x/forwarded@0.1.12/mod.ts'
+import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.12/mod.ts'
 
 export type { RequestWithConnection }
 

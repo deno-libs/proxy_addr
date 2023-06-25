@@ -5,7 +5,7 @@ import {
   run,
 } from 'https://deno.land/x/tincan@1.0.1/mod.ts'
 import { all, RequestWithConnection } from './mod.ts'
-import { ConnInfo } from 'https://deno.land/std@0.185.0/http/server.ts'
+import { ConnInfo } from 'https://deno.land/std@0.192.0/http/server.ts'
 
 const createReq = (
   hostname: string,
