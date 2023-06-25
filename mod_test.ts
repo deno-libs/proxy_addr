@@ -39,13 +39,13 @@ describe('all(req, trust)', () => {
   })
   it('with trust argument should stop at first untrusted', () => {
     const req = createReq('127.0.0.1', {
-      'x-forwarded-for': '10.0.0.1, 10.0.0.2'
+      'x-forwarded-for': '10.0.0.1, 10.0.0.2',
     })
     expect(all(req, '127.0.0.1')).toEqual(['127.0.0.1', '10.0.0.2'])
   })
   it('with trust argument should be only socket address for no trust', () => {
     const req = createReq('127.0.0.1', {
-      'x-forwarded-for': '10.0.0.1, 10.0.0.2'
+      'x-forwarded-for': '10.0.0.1, 10.0.0.2',
     })
     expect(all(req, [])).toEqual(['127.0.0.1'])
   })

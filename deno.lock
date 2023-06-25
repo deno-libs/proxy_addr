@@ -46,9 +46,11 @@
     "https://deno.land/x/tincan@1.0.1/src/runner.ts": "54e1a0934a52469437bd4655df51f0c9148327d94a2b0d6c175f6f992a697b86",
     "https://esm.sh/ipaddr.js@2.0.1": "f2c90abe63a8f8c30d0b4e64bef4a9828accae3b0d7fce6c3afbed74be18a546",
     "https://esm.sh/ipaddr.js@2.1.0/": "c9545c7a3299c09e26f900e6ea271d3454b6f3baed03eb9ba09d77bf83bbc8bf",
+    "https://esm.sh/ipaddr.js@2.1.0/lib/ipaddr.js": "047c15e4c59847a081c87c5b09acb446881d85e1d4ed57c9bfed984aeed5dcce",
     "https://esm.sh/v119/ipaddr.js@2.0.1/deno/ipaddr.mjs": "774ed6749a35b0e19baf8c37eeadb7972827caf8eb42c67781326c8a55566117",
     "https://esm.sh/v119/ipaddr.js@2.0.1/lib/ipaddr.js.d.ts": "abec029acbf1ce8b3f4c0df9bac07152f011e9034e83ab5ed6142331776b9995",
     "https://esm.sh/v126/ipaddr.js@2.1.0/denonext/ipaddr.mjs": "214c1ee845e73e7c51ba673b36e7e6b9c5d8e8fb1fc19443444ad9cec44adf7e",
+    "https://esm.sh/v126/ipaddr.js@2.1.0/denonext/lib/ipaddr.js": "4d4c16e4fbe760de7c9ef62ebe1dc837d1cc06f0b9bc320fcf7959ed253074e5",
     "https://esm.sh/v126/ipaddr.js@2.1.0/lib/ipaddr.js.d.ts": "50615b1e78b80d69924a0f4ebc01be5534069a69718aff0d2638c0d5ae74a8ae"
   }
 }

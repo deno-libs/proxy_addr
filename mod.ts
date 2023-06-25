@@ -1,13 +1,10 @@
-// deno-lint-ignore-file
-import { default as ipaddr, IPv4, IPv6 } from 'https://esm.sh/ipaddr.js@2.1.0/'
-import { forwarded } from 'https://deno.land/x/forwarded@0.1.12/mod.ts'
-import type { RequestWithConnection } from 'https://deno.land/x/forwarded@0.1.12/mod.ts'
+import { forwarded, IPv4, IPv6, isValid, parse } from './deps.ts'
+import type { RequestWithConnection } from './deps.ts'
+export { RequestWithConnection }
 
-export type { RequestWithConnection }
+type Trust = ((addr: string, i?: number) => boolean) | string[] | string
 
 const DIGIT_REGEXP = /^[0-9]+$/
-const isip = ipaddr.isValid
-const parseip = ipaddr.parse
 /**
  * Pre-defined IP ranges.
  */
@@ -23,10 +20,7 @@ const IP_RANGES: Record<string, string[]> = {
  * @param request
  * @param trust
  */
-function alladdrs(
-  req: RequestWithConnection,
-  trust?: ((...args: any[]) => any) | any[] | string[] | string,
-) {
+function alladdrs(req: RequestWithConnection, trust?: Trust) {
   // get addresses
 
   const addrs = forwarded(req)
@@ -70,9 +64,11 @@ function compile(val: string | string[]) {
 /**
  * Compile `arr` elements into range subnets.
  */
-function compileRangeSubnets(arr: any[]) {
+function compileRangeSubnets(arr: string[]) {
   const rangeSubnets = new Array(arr.length)
-  for (let i = 0; i < arr.length; i++) rangeSubnets[i] = parseIPNotation(arr[i])
+  for (let i = 0; i < arr.length; i++) {
+    rangeSubnets[i] = parseIPNotation(arr[i])
+  }
 
   return rangeSubnets
 }
@@ -81,7 +77,7 @@ function compileRangeSubnets(arr: any[]) {
  *
  * @param rangeSubnets
  */
-function compileTrust(rangeSubnets: any[]) {
+function compileTrust(rangeSubnets: (IPv4 | IPv6)[][]) {
   // Return optimized function based on length
   const len = rangeSubnets.length
   return len === 0
@@ -100,9 +96,9 @@ export function parseIPNotation(note: string) {
   const pos = note.lastIndexOf('/')
   const str = pos !== -1 ? note.substring(0, pos) : note
 
-  if (!isip(str)) throw new TypeError('invalid IP address: ' + str)
+  if (!isValid(str)) throw new TypeError('invalid IP address: ' + str)
 
-  let ip = parseip(str)
+  let ip = parse(str)
 
   if (pos === -1 && ip.kind() === 'ipv6') {
     ip = ip as typeof IPv6
@@ -118,7 +114,7 @@ export function parseIPNotation(note: string) {
 
   if (range === null) range = max
   else if (DIGIT_REGEXP.test(range)) range = parseInt(range, 10)
-  else if (ip.kind() === 'ipv4' && isip(range)) range = parseNetmask(range)
+  else if (ip.kind() === 'ipv4' && isValid(range)) range = parseNetmask(range)
   else range = null
 
   if (range && typeof range === 'number' && (range <= 0 || range > max)) {
@@ -134,7 +130,7 @@ export function parseIPNotation(note: string) {
  * @private
  */
 function parseNetmask(netmask: string) {
-  const ip = parseip(netmask)
+  const ip = parse(netmask)
   return ip.kind() === 'ipv4' ? ip.prefixLengthFromSubnetMask() : null
 }
 /**
@@ -144,10 +140,7 @@ function parseNetmask(netmask: string) {
  * @param trust
  * @public
  */
-export function proxyaddr(
-  req: RequestWithConnection,
-  trust?: ((...args: any[]) => any) | any[] | string[] | string,
-) {
+export function proxyaddr(req: RequestWithConnection, trust?: Trust) {
   const addrs = alladdrs(req, trust)
 
   return addrs[addrs.length - 1]
@@ -159,10 +152,10 @@ const trustNone = () => false
 /**
  * Compile trust function for multiple subnets.
  */
-function trustMulti(subnets: any[]) {
+function trustMulti(subnets: (IPv4 | IPv6)[][]) {
   return function trust(addr: string) {
-    if (!isip(addr)) return false
-    const ip = parseip(addr)
+    if (!isValid(addr)) return false
+    const ip = parse(addr)
     let ipconv
     const kind = ip.kind()
     for (let i = 0; i < subnets.length; i++) {
@@ -172,19 +165,19 @@ function trustMulti(subnets: any[]) {
       const subnetrange = subnet[1]
       let trusted = ip
       if (kind !== subnetkind) {
-        if (
-          subnetkind === 'ipv4' && !(ip as typeof IPv6).isIPv4MappedAddress()
-        ) continue
+        if (subnetkind === 'ipv4' && !(ip as IPv6).isIPv4MappedAddress()) {
+          continue
+        }
 
         if (!ipconv) {
           ipconv = subnetkind === 'ipv4'
-            ? (ip as typeof IPv6).toIPv4Address()
-            : (ip as typeof IPv4).toIPv4MappedAddress()
+            ? ip.toIPv4Address()
+            : ip.toIPv4MappedAddress()
         }
 
         trusted = ipconv
       }
-      if ((trusted as typeof IPv4).match(subnetip, subnetrange)) return true
+      if (trusted.match(subnetip, subnetrange)) return true
     }
     return false
   }
@@ -194,25 +187,23 @@ function trustMulti(subnets: any[]) {
  *
  * @param subnet
  */
-function trustSingle(subnet: any[]) {
+function trustSingle(subnet: (IPv4 | IPv6)[]) {
   const subnetip = subnet[0]
   const subnetkind = subnetip.kind()
   const subnetisipv4 = subnetkind === 'ipv4'
   const subnetrange = subnet[1]
   return function trust(addr: string) {
-    if (!isip(addr)) return false
-    let ip = parseip(addr)
+    if (!isValid(addr)) return false
+    let ip = parse(addr)
     const kind = ip.kind()
     if (kind !== subnetkind) {
-      if (subnetisipv4 && !(ip as typeof IPv6).isIPv4MappedAddress()) {
+      if (subnetisipv4 && !(ip as IPv6).isIPv4MappedAddress()) {
         return false
       }
 
-      ip = subnetisipv4
-        ? (ip as typeof IPv6).toIPv4Address()
-        : (ip as typeof IPv4).toIPv4MappedAddress()
+      ip = subnetisipv4 ? ip.toIPv4Address() : ip.toIPv4MappedAddress()
     }
-    return (ip as typeof IPv6).match(subnetip, subnetrange)
+    return ip.match(subnetip, subnetrange)
   }
 }
 

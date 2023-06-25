@@ -1,6 +1,9 @@
 # proxy_addr
 
-[![GitHub release (latest by date)][releases]][releases-page] [![][docs-badge]][docs] [![GitHub Workflow Status][gh-actions-img]][github-actions] [![Codecov][codecov-badge]][codecov]
+[![GitHub release (latest by date)][releases]][releases-page]
+[![][docs-badge]][docs]
+[![GitHub Workflow Status][gh-actions-img]][github-actions]
+[![Codecov][codecov-badge]][codecov]
 
 Deno port of
 [proxy-addr](https://github.com/jshttp/proxy-addr/blob/master/index.js) library.
