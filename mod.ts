@@ -1,5 +1,5 @@
-import { forwarded, IPv4, IPv6, isValid, parse } from './deps.ts'
-import type { RequestWithConnection } from './deps.ts'
+import { forwarded, isValid, parse } from './deps.ts'
+import type { IPv4, IPv6, RequestWithConnection } from './deps.ts'
 export { RequestWithConnection }
 
 type Trust = ((addr: string, i?: number) => boolean) | string[] | string
@@ -98,19 +98,18 @@ export function parseIPNotation(note: string) {
 
   if (!isValid(str)) throw new TypeError('invalid IP address: ' + str)
 
-  let ip = parse(str)
+  let ip = parse(str) as IPv4 | IPv6
 
   if (pos === -1 && ip.kind() === 'ipv6') {
-    ip = ip as typeof IPv6
+    ip = ip as IPv6
 
     if (ip.isIPv4MappedAddress()) ip = ip.toIPv4Address()
   }
 
   const max = ip.kind() === 'ipv6' ? 128 : 32
 
-  let range: string | number | null = pos !== -1
-    ? note.substring(pos + 1, note.length)
-    : null
+  let range: string | number | null =
+    pos !== -1 ? note.substring(pos + 1, note.length) : null
 
   if (range === null) range = max
   else if (DIGIT_REGEXP.test(range)) range = parseInt(range, 10)
@@ -170,13 +169,15 @@ function trustMulti(subnets: (IPv4 | IPv6)[][]) {
         }
 
         if (!ipconv) {
-          ipconv = subnetkind === 'ipv4'
-            ? ip.toIPv4Address()
-            : ip.toIPv4MappedAddress()
+          ipconv =
+            subnetkind === 'ipv4'
+              ? (ip as IPv6).toIPv4Address()
+              : (ip as IPv6).toIPv4MappedAddress()
         }
 
         trusted = ipconv
       }
+      // @ts-ignore types
       if (trusted.match(subnetip, subnetrange)) return true
     }
     return false
@@ -192,17 +193,26 @@ function trustSingle(subnet: (IPv4 | IPv6)[]) {
   const subnetkind = subnetip.kind()
   const subnetisipv4 = subnetkind === 'ipv4'
   const subnetrange = subnet[1]
+
   return function trust(addr: string) {
     if (!isValid(addr)) return false
+
     let ip = parse(addr)
     const kind = ip.kind()
+
     if (kind !== subnetkind) {
       if (subnetisipv4 && !(ip as IPv6).isIPv4MappedAddress()) {
+        // Incompatible IP addresses
         return false
       }
 
-      ip = subnetisipv4 ? ip.toIPv4Address() : ip.toIPv4MappedAddress()
+      // Convert IP to match subnet IP kind
+      ip = subnetisipv4
+        ? (ip as IPv6).toIPv4Address()
+        : (ip as IPv6).toIPv4MappedAddress()
     }
+
+    // @ts-ignore types
     return ip.match(subnetip, subnetrange)
   }
 }

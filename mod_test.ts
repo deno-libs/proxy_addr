@@ -5,21 +5,22 @@ import {
   run,
 } from 'https://deno.land/x/tincan@1.0.1/mod.ts'
 import { all, RequestWithConnection } from './mod.ts'
-import { ConnInfo } from 'https://deno.land/std@0.192.0/http/server.ts'
+import { ConnInfo } from 'https://deno.land/std@0.197.0/http/server.ts'
 
 const createReq = (
   hostname: string,
-  headers?: Record<string, string>,
-): RequestWithConnection => ({
-  conn: {
-    remoteAddr: {
-      hostname,
-      port: 8081,
-      transport: 'tcp',
-    },
-  } as ConnInfo,
-  headers: new Headers(headers || {}),
-} as unknown as RequestWithConnection)
+  headers?: Record<string, string>
+): RequestWithConnection =>
+  ({
+    conn: {
+      remoteAddr: {
+        hostname,
+        port: 8081,
+        transport: 'tcp',
+      },
+    } as ConnInfo,
+    headers: new Headers(headers || {}),
+  } as unknown as RequestWithConnection)
 
 describe('all(req, trust)', () => {
   it('with no headers should return socket address', () => {
