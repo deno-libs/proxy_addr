@@ -34,7 +34,7 @@ function alladdrs(
   req: RequestWithConnection,
   trust?: Trust,
   info?: ConnectionInfo,
-) {
+): string[] {
   // get addresses
 
   const addrs = forwarded(req, info)
@@ -54,7 +54,7 @@ function alladdrs(
  *
  * @param  val
  */
-function compile(val: string | string[]) {
+function compile(val: string | string[]): (addr: string, i?: number) => boolean {
   let trust
   if (typeof val === 'string') trust = [val]
   else if (Array.isArray(val)) trust = val.slice()
@@ -90,7 +90,7 @@ function normalizeSubnets(arr: string[]) {
  *
  * @param note IP notation (e.g. "127.0.0.1", "10.0.0.0/8", "192.168.0.0/255.255.0.0")
  */
-export function normalizeCIDR(note: string) {
+export function normalizeCIDR(note: string): string {
   const pos = note.lastIndexOf('/')
   const str = pos !== -1 ? note.substring(0, pos) : note
 
@@ -207,7 +207,7 @@ export function proxyaddr(
   req: RequestWithConnection,
   trust?: Trust,
   info?: ConnectionInfo,
-) {
+): string {
   const addrs = alladdrs(req, trust, info)
 
   return addrs[addrs.length - 1]
