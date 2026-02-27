@@ -11,18 +11,10 @@ Deno port of
 ## Usage
 
 ```ts
-import { serve } from 'https://deno.land/std@0.185.0/http/server.ts'
-import {
-  proxyaddr,
-  RequestWithConnection,
-} from 'https://deno.land/x/proxy_addr/mod.ts'
+import { proxyaddr } from 'jsr:@deno-libs/proxy-addr'
 
-await serve((req, conn) => {
-  const request = req as RequestWithConnection
-
-  request.conn = conn
-
-  const res = proxyaddr(request, ['127.0.0.1'])
+Deno.serve((req, info) => {
+  const res = proxyaddr(req, ['127.0.0.1'], info)
 
   return new Response(res)
 })

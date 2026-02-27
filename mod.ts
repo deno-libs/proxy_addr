@@ -1,10 +1,20 @@
-import { forwarded, isValid, parse } from './deps.ts'
-import type { IPv4, IPv6, RequestWithConnection } from './deps.ts'
-export { RequestWithConnection }
+import { forwarded } from '@deno-libs/forwarded'
+import type {
+  ConnectionInfo,
+  RequestWithConnection,
+} from '@deno-libs/forwarded'
+import {
+  isIPv4,
+  isIPv6,
+  matchIPv4Subnet,
+  matchIPv6Subnet,
+} from '@std/net/unstable-ip'
+export type { ConnectionInfo, RequestWithConnection }
 
 type Trust = ((addr: string, i?: number) => boolean) | string[] | string
 
 const DIGIT_REGEXP = /^[0-9]+$/
+const IPV4_MAPPED_RE = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i
 /**
  * Pre-defined IP ranges.
  */
@@ -20,10 +30,14 @@ const IP_RANGES: Record<string, string[]> = {
  * @param request
  * @param trust
  */
-function alladdrs(req: RequestWithConnection, trust?: Trust) {
+function alladdrs(
+  req: RequestWithConnection,
+  trust?: Trust,
+  info?: ConnectionInfo,
+) {
   // get addresses
 
-  const addrs = forwarded(req)
+  const addrs = forwarded(req, info)
 
   if (!trust) return addrs
 
@@ -59,78 +73,128 @@ function compile(val: string | string[]) {
     i += val.length - 1
   }
 
-  return compileTrust(compileRangeSubnets(trust))
+  return compileTrust(normalizeSubnets(trust))
 }
 /**
- * Compile `arr` elements into range subnets.
+ * Normalize subnet strings to CIDR notation.
  */
-function compileRangeSubnets(arr: string[]) {
-  const rangeSubnets = new Array(arr.length)
+function normalizeSubnets(arr: string[]) {
+  const result = new Array<string>(arr.length)
   for (let i = 0; i < arr.length; i++) {
-    rangeSubnets[i] = parseIPNotation(arr[i])
+    result[i] = normalizeCIDR(arr[i])
   }
-
-  return rangeSubnets
+  return result
 }
 /**
- * Compile range subnet array into trust function.
+ * Normalize an IP/CIDR/netmask string to CIDR notation.
  *
- * @param rangeSubnets
+ * @param note IP notation (e.g. "127.0.0.1", "10.0.0.0/8", "192.168.0.0/255.255.0.0")
  */
-function compileTrust(rangeSubnets: (IPv4 | IPv6)[][]) {
-  // Return optimized function based on length
-  const len = rangeSubnets.length
-  return len === 0
-    ? trustNone
-    : len === 1
-    ? trustSingle(rangeSubnets[0])
-    : trustMulti(rangeSubnets)
-}
-/**
- * Parse IP notation string into range subnet.
- *
- * @param {String} note
- * @private
- */
-export function parseIPNotation(note: string) {
+export function normalizeCIDR(note: string) {
   const pos = note.lastIndexOf('/')
   const str = pos !== -1 ? note.substring(0, pos) : note
 
-  if (!isValid(str)) throw new TypeError('invalid IP address: ' + str)
-
-  let ip = parse(str) as IPv4 | IPv6
-
-  if (pos === -1 && ip.kind() === 'ipv6') {
-    ip = ip as IPv6
-
-    if (ip.isIPv4MappedAddress()) ip = ip.toIPv4Address()
+  if (!isIPv4(str) && !isIPv6(str)) {
+    throw new TypeError('invalid IP address: ' + str)
   }
 
-  const max = ip.kind() === 'ipv6' ? 128 : 32
-
-  let range: string | number | null =
-    pos !== -1 ? note.substring(pos + 1, note.length) : null
-
-  if (range === null) range = max
-  else if (DIGIT_REGEXP.test(range)) range = parseInt(range, 10)
-  else if (ip.kind() === 'ipv4' && isValid(range)) range = parseNetmask(range)
-  else range = null
-
-  if (range && typeof range === 'number' && (range <= 0 || range > max)) {
-    throw new TypeError('invalid range on address: ' + note)
+  if (pos === -1) {
+    // No prefix/mask, use max prefix for exact match
+    return isIPv4(str) ? str + '/32' : str + '/128'
   }
 
-  return [ip, range]
+  const suffix = note.substring(pos + 1)
+
+  if (DIGIT_REGEXP.test(suffix)) {
+    // Already CIDR notation
+    const range = parseInt(suffix, 10)
+    const max = isIPv4(str) ? 32 : 128
+    if (range <= 0 || range > max) {
+      throw new TypeError('invalid range on address: ' + note)
+    }
+    return note
+  }
+
+  if (isIPv4(str) && isIPv4(suffix)) {
+    // Netmask notation, convert to CIDR
+    const prefix = netmaskToPrefixLength(suffix)
+    if (prefix === null) {
+      throw new TypeError('invalid range on address: ' + note)
+    }
+    return str + '/' + prefix
+  }
+
+  throw new TypeError('invalid range on address: ' + note)
 }
 /**
- * Parse netmask string into CIDR range.
+ * Convert a netmask string to CIDR prefix length.
  *
  * @param netmask
- * @private
  */
-function parseNetmask(netmask: string) {
-  const ip = parse(netmask)
-  return ip.kind() === 'ipv4' ? ip.prefixLengthFromSubnetMask() : null
+function netmaskToPrefixLength(netmask: string): number | null {
+  const parts = netmask.split('.')
+  if (parts.length !== 4) return null
+
+  let prefix = 0
+  let seenZero = false
+
+  for (const part of parts) {
+    const byte = parseInt(part, 10)
+    if (isNaN(byte) || byte < 0 || byte > 255) return null
+
+    for (let bit = 7; bit >= 0; bit--) {
+      if ((byte >> bit) & 1) {
+        if (seenZero) return null // non-contiguous mask
+        prefix++
+      } else {
+        seenZero = true
+      }
+    }
+  }
+
+  return prefix
+}
+/**
+ * Check if an address matches a subnet, handling IPv4-mapped IPv6.
+ */
+function matchSubnet(addr: string, subnet: string): boolean {
+  const subnetIP = subnet.substring(0, subnet.lastIndexOf('/'))
+  const isSubnetV4 = isIPv4(subnetIP)
+  const isAddrV4 = isIPv4(addr)
+
+  if (isAddrV4 && isSubnetV4) {
+    return matchIPv4Subnet(addr, subnet)
+  }
+
+  if (!isAddrV4 && !isSubnetV4) {
+    return matchIPv6Subnet(addr, subnet)
+  }
+
+  // Handle IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1)
+  if (!isAddrV4 && isSubnetV4) {
+    const mapped = IPV4_MAPPED_RE.exec(addr)
+    if (mapped) return matchIPv4Subnet(mapped[1], subnet)
+  }
+
+  if (isAddrV4 && !isSubnetV4) {
+    return matchIPv6Subnet('::ffff:' + addr, subnet)
+  }
+
+  return false
+}
+/**
+ * Compile subnet array into trust function.
+ *
+ * @param subnets
+ */
+function compileTrust(subnets: string[]) {
+  // Return optimized function based on length
+  const len = subnets.length
+  return len === 0
+    ? trustNone
+    : len === 1
+    ? trustSingle(subnets[0])
+    : trustMulti(subnets)
 }
 /**
  * Determine address of proxied request.
@@ -139,8 +203,12 @@ function parseNetmask(netmask: string) {
  * @param trust
  * @public
  */
-export function proxyaddr(req: RequestWithConnection, trust?: Trust) {
-  const addrs = alladdrs(req, trust)
+export function proxyaddr(
+  req: RequestWithConnection,
+  trust?: Trust,
+  info?: ConnectionInfo,
+) {
+  const addrs = alladdrs(req, trust, info)
 
   return addrs[addrs.length - 1]
 }
@@ -151,34 +219,11 @@ const trustNone = () => false
 /**
  * Compile trust function for multiple subnets.
  */
-function trustMulti(subnets: (IPv4 | IPv6)[][]) {
+function trustMulti(subnets: string[]) {
   return function trust(addr: string) {
-    if (!isValid(addr)) return false
-    const ip = parse(addr)
-    let ipconv
-    const kind = ip.kind()
+    if (!isIPv4(addr) && !isIPv6(addr)) return false
     for (let i = 0; i < subnets.length; i++) {
-      const subnet = subnets[i]
-      const subnetip = subnet[0]
-      const subnetkind = subnetip.kind()
-      const subnetrange = subnet[1]
-      let trusted = ip
-      if (kind !== subnetkind) {
-        if (subnetkind === 'ipv4' && !(ip as IPv6).isIPv4MappedAddress()) {
-          continue
-        }
-
-        if (!ipconv) {
-          ipconv =
-            subnetkind === 'ipv4'
-              ? (ip as IPv6).toIPv4Address()
-              : (ip as IPv6).toIPv4MappedAddress()
-        }
-
-        trusted = ipconv
-      }
-      // @ts-ignore types
-      if (trusted.match(subnetip, subnetrange)) return true
+      if (matchSubnet(addr, subnets[i])) return true
     }
     return false
   }
@@ -188,32 +233,10 @@ function trustMulti(subnets: (IPv4 | IPv6)[][]) {
  *
  * @param subnet
  */
-function trustSingle(subnet: (IPv4 | IPv6)[]) {
-  const subnetip = subnet[0]
-  const subnetkind = subnetip.kind()
-  const subnetisipv4 = subnetkind === 'ipv4'
-  const subnetrange = subnet[1]
-
+function trustSingle(subnet: string) {
   return function trust(addr: string) {
-    if (!isValid(addr)) return false
-
-    let ip = parse(addr)
-    const kind = ip.kind()
-
-    if (kind !== subnetkind) {
-      if (subnetisipv4 && !(ip as IPv6).isIPv4MappedAddress()) {
-        // Incompatible IP addresses
-        return false
-      }
-
-      // Convert IP to match subnet IP kind
-      ip = subnetisipv4
-        ? (ip as IPv6).toIPv4Address()
-        : (ip as IPv6).toIPv4MappedAddress()
-    }
-
-    // @ts-ignore types
-    return ip.match(subnetip, subnetrange)
+    if (!isIPv4(addr) && !isIPv6(addr)) return false
+    return matchSubnet(addr, subnet)
   }
 }
 
